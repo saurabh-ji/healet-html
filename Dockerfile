@@ -1,4 +1,4 @@
-FROM  ubuntu:2.4
+FROM  ubuntu:latest
 WORKDIR  /app 
 COPY  . .
 MAINTAINER saurabh-yadav
