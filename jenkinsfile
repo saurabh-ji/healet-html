@@ -1,0 +1,68 @@
+pipeline {
+    agent { label 'jenkins-server1' }   // 🎯 run on specific node
+
+    environment {
+        IMAGE_NAME = "helate-app"
+        CONTAINER_NAME = "helate-app-container"
+        APP_PORT = "80"
+        HOST_PORT = "5003"
+    }
+
+    stages {
+
+        stage('Checkout Code') {
+            steps {
+                git branch: 'master',
+                    url: 'https://github.com/saurabh-ji/healet-html.git'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh """
+                docker build -t $IMAGE_NAME:${BUILD_NUMBER} .
+                """
+            }
+        }
+
+        stage('Stop & Remove Old Container') {
+            steps {
+                sh """
+                if docker ps -a --format '{{.Names}}' | grep -w $CONTAINER_NAME; then
+                    docker stop $CONTAINER_NAME
+                    docker rm $CONTAINER_NAME
+                fi
+                """
+            }
+        }
+
+        stage('Run New Container') {
+            steps {
+                sh """
+                docker run -d \
+                --name $CONTAINER_NAME \
+                -p $HOST_PORT:$APP_PORT \
+                $IMAGE_NAME:${BUILD_NUMBER}
+                """
+            }
+        }
+
+        stage('Verify Application') {
+            steps {
+                sh """
+                sleep 5
+                curl -I http://localhost:$HOST_PORT
+                """
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✅ Application deployed successfully!"
+        }
+        failure {
+            echo "❌ Deployment failed!"
+        }
+    }
+}-
